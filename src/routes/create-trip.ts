@@ -19,12 +19,13 @@ export async function createTrip(app: FastifyInstance){
                 ends_at: z.coerce.date(),
                 owner_name: z.string(),
                 owner_email: z.string().email(),
-
+                //e-mails vai ser um array, onde vai ser um array com vários e-mails.
+                emails_to_invite: z.array(z.string().email())
                 
             })
         },
     }, async (request) => {
-        const { destination, starts_at, ends_at, owner_name, owner_email} = request.body
+        const { destination, starts_at, ends_at, owner_name, owner_email, emails_to_invite} = request.body
         
         if (dayjs(starts_at).isBefore(new Date())){
             throw new Error('Invalid trip start date.')
@@ -34,21 +35,30 @@ export async function createTrip(app: FastifyInstance){
             throw new Error('Invalid trip day, the ends is before the start.')
         }
 
-//transaction: se alguma schama/ query falha, desfaz e roda tudo novamente.
+        //transaction: se alguma schama/ query falha, desfaz e roda tudo novamente.
 
-        
         const trip = await prisma.trip.create({
             data:{
                 destination,
                 starts_at,
                 ends_at,
                 participants: {
-                    create:{
-                        name: owner_name,
-                        email: owner_email,
-                        is_owner: true,
-                        is_confirmed: true,
-                }}
+                    createMany:{
+                        data:[
+                            {
+                            name: owner_name,
+                            email: owner_email,
+                            is_owner: true,
+                            is_confirmed: true,
+                            },
+                            //vou percorrer a lista de emails aqui
+                            //... para concatenar o meu array de e-mails 
+                            ...emails_to_invite.map(email => {
+                                return {email}
+                            })
+                        ],
+                    }
+                }
             }
         })
 
