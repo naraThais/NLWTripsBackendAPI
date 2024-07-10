@@ -34,17 +34,27 @@ export async function createTrip(app: FastifyInstance){
             throw new Error('Invalid trip day, the ends is before the start.')
         }
 
+//transaction: se alguma schama/ query falha, desfaz e roda tudo novamente.
+
+        
         const trip = await prisma.trip.create({
             data:{
                 destination,
                 starts_at,
                 ends_at,
+                participants: {
+                    create:{
+                        name: owner_name,
+                        email: owner_email,
+                        is_owner: true,
+                        is_confirmed: true,
+                }}
             }
         })
 
         const mail = await getMailClient()
 
-       const message = await mail.sendMail({
+        const message = await mail.sendMail({
             from:{
                 name: 'Equipe Plann.er',
                 address: 'oi@plann.er',
